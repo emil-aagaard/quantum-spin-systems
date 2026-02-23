@@ -1,5 +1,7 @@
 from scipy.sparse import lil_matrix, identity, kron
 from scipy.sparse.linalg import eigsh
+from numpy import ndarray, dtype, float64
+from typing import Any
 
 
 class QuantumSpinSystem:
@@ -88,17 +90,19 @@ class Hamiltonian:
     def __init__(
         self, quantum_spin_system: QuantumSpinSystem, lattice: Lattice
     ) -> None:
-        self.quantum_spin_system = quantum_spin_system
-        self.lattice = lattice
-        self.matrix = lil_matrix(
+        self.quantum_spin_system: QuantumSpinSystem = quantum_spin_system
+        self.lattice: Lattice = lattice
+        self.matrix: lil_matrix = lil_matrix(
             (quantum_spin_system.total_dimension, quantum_spin_system.total_dimension)
         )
 
     def construct_hamiltonian(self) -> None:
         raise NotImplementedError("This method should be implemented by subclasses.")
 
-    def diagonalize(self, k: int = 6) -> tuple:
-        eigenvalues, eigenvectors = eigsh(self.matrix, k=k, which="SA")
+    def diagonalize(
+        self, k: int = 6, which: str = "LM"
+    ) -> tuple[ndarray[float64], ndarray[ndarray[float64]]]:
+        eigenvalues, eigenvectors = eigsh(self.matrix, k=k, which=which)
         return eigenvalues, eigenvectors
 
 
@@ -152,3 +156,41 @@ class XYHamiltonian(Hamiltonian):
                     0.5 * s_minus_i @ s_plus_j + 0.5 * s_plus_i @ s_minus_j
                 )
                 self.matrix += self.J * interaction_term
+
+
+class H0Hamiltonian(Hamiltonian):
+    def __init__(
+        self, quantum_spin_system: QuantumSpinSystem, lattice: Lattice, J: float
+    ) -> None:
+        super().__init__(quantum_spin_system, lattice)
+        self.J = J
+        self.construct_hamiltonian()
+
+    def construct_hamiltonian(self) -> None:
+        for i in range(len(self.quantum_spin_system.dimensions)):
+            neighbors = self.lattice.get_neighbors(i)
+            for j in neighbors:
+                s_minus_i = self.quantum_spin_system.get_s_minus_i(i)
+                s_plus_i = self.quantum_spin_system.get_s_plus_i(i)
+
+                s_minus_j = self.quantum_spin_system.get_s_minus_i(j)
+                s_plus_j = self.quantum_spin_system.get_s_plus_i(j)
+
+                interaction_term = (
+                    0.5 * s_minus_i @ s_plus_j - 0.5 * s_plus_i @ s_minus_j
+                )
+                self.matrix += self.J * interaction_term
+
+
+class SZTotal(Hamiltonian):
+    def __init__(
+        self, quantum_spin_system: QuantumSpinSystem, lattice: Lattice, J: float
+    ) -> None:
+        super().__init__(quantum_spin_system, lattice)
+        self.J = J
+        self.construct_hamiltonian()
+
+    def construct_hamiltonian(self) -> None:
+        for i in range(len(self.quantum_spin_system.dimensions)):
+            s_z_i = self.quantum_spin_system.get_s_z_i(i)
+            self.matrix += s_z_i
