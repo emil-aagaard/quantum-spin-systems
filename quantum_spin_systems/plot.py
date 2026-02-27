@@ -7,13 +7,14 @@ def plot_eigenvalues(
     eigenvalues: np.ndarray[np.float64],
     eigenvectors: np.ndarray[np.ndarray[np.float64]],
     path: Path,
+    tolerance: float=1e-12
 ) -> None:
     previous_eigenvalue = None
     eigenspace: list[list[np.float64 | int]] = []
     for eigenvalue, _ in zip(eigenvalues, eigenvectors.T):
         if (
             previous_eigenvalue is not None
-            and abs(eigenvalue - previous_eigenvalue) < 1e-12
+            and abs(eigenvalue - previous_eigenvalue) < tolerance
         ):
             eigenspace[-1][1] += 1
         else:

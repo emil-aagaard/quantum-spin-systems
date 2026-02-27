@@ -1,19 +1,19 @@
 from scipy.sparse import lil_matrix, identity, kron
 from scipy.sparse.linalg import eigsh
-from numpy import ndarray, dtype, float64
-from typing import Any
+from numpy import ndarray, float64
 
 
 class QuantumSpinSystem:
     def __init__(self, dimensions: list[int]) -> None:
         self.dimensions = dimensions
+        self.n = len(dimensions)
         self.total_dimension = 1
         for dimension in dimensions:
             self.total_dimension *= dimension
 
     def embed_matrix(self, matrix: lil_matrix, i: int) -> lil_matrix:
         result = identity(1, format="lil")
-        for j in range(len(self.dimensions)):
+        for j in range(self.n):
             if j == i:
                 result = kron(result, matrix, format="lil")
             else:
@@ -44,6 +44,24 @@ class QuantumSpinSystem:
             s_z_i[m, m] = m - (dimension - 1) / 2
         s_z_i = self.embed_matrix(s_z_i, i)
         return s_z_i
+
+    def get_s_minus_total(self) -> lil_matrix:
+        s_minus_total = lil_matrix((self.total_dimension, self.total_dimension))
+        for i in range(self.n):
+            s_minus_total += self.get_s_minus_i(i=i)
+        return s_minus_total
+    
+    def get_s_plus_total(self) -> lil_matrix:
+        s_plus_total = lil_matrix((self.total_dimension, self.total_dimension))
+        for i in range(self.n):
+            s_plus_total += self.get_s_plus_i(i=i)
+        return s_plus_total
+
+    def get_s_z_total(self) -> lil_matrix:
+        s_z_total = lil_matrix((self.total_dimension, self.total_dimension))
+        for i in range(self.n):
+            s_z_total += self.get_s_z_i(i=i)
+        return s_z_total
 
 
 class Lattice:
